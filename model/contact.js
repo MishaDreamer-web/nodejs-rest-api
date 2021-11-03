@@ -1,5 +1,6 @@
-const { Schema, model } = require('mongoose');
-const { ValidInfoContact } = require('../config/constant');
+const { Schema, model, SchemaTypes } = require('mongoose');
+const mongoosePaginate = require('mongoose-paginate-v2');
+const { ValidInfoContact } = require('../config/constants');
 
 const contactSchema = new Schema(
   {
@@ -22,6 +23,10 @@ const contactSchema = new Schema(
     isFavourite: {
       type: Boolean,
       default: false,
+    },
+    owner: {
+      type: SchemaTypes.ObjectId,
+      ref: 'user',
     },
   },
   {
@@ -49,6 +54,9 @@ contactSchema.path('name').validate(function (value) {
   const re = /[A-Z]\w+/;
   return re.test(String(value));
 });
+
+contactSchema.plugin(mongoosePaginate);
+
 const Contact = model('contact', contactSchema);
 
 module.exports = Contact;
