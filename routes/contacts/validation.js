@@ -1,6 +1,6 @@
 const Joi = require('joi');
 Joi.objectId = require('joi-objectid')(Joi);
-const { ValidInfoContact } = require('../../config/constant');
+const { ValidInfoContact, HttpCode } = require('../../config/constants');
 
 const patternPhone =
   '\\+?\\d{1,4}?[-.\\s]?\\(?\\d{1,3}?\\)?[-.\\s]?\\d{1,4}[-.\\s]?\\d{1,4}[-.\\s]?\\d{1,9}';
@@ -29,9 +29,9 @@ const validate = async (schema, obj, res, next) => {
     next();
   } catch (err) {
     console.log(err);
-    res.status(400).json({
+    res.status(HttpCode.BAD_REQUEST).json({
       status: 'error',
-      code: 400,
+      code: HttpCode.BAD_REQUEST,
       message: `Field ${err.message.replace(/"/g, '')}`,
     });
   }
