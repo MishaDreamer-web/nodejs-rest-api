@@ -36,6 +36,7 @@ const contactSchema = new Schema(
       virtuals: true,
       transform: function (doc, ret) {
         delete ret._id;
+        // ret.name = `@${ret.name}`;
         return ret;
       },
     },
