@@ -6,7 +6,7 @@ const patternPassword = '^[a-zA-Z0-9]{5,20}$';
 
 const schemaUserRegistration = Joi.object({
   email: Joi.string().email().required(),
-  password: Joi.string().min(8).pattern(new RegExp(patternPassword)).required(),
+  password: Joi.string().min(5).pattern(new RegExp(patternPassword)).required(),
   subscription: Joi.string()
     .valid(Subscription.START, Subscription.PRO, Subscription.BUSINESS)
     .optional(),
@@ -14,7 +14,7 @@ const schemaUserRegistration = Joi.object({
 
 const schemaUserLogin = Joi.object({
   email: Joi.string().email().required(),
-  password: Joi.string().min(8).pattern(new RegExp(patternPassword)).required(),
+  password: Joi.string().min(5).pattern(new RegExp(patternPassword)).required(),
 });
 
 const schemaSubscriptionUser = Joi.object({
