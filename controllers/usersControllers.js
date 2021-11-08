@@ -6,6 +6,13 @@ const Users = require('../repository/usersRepository');
 // const UploadService = require('../services/file-upload');
 const UploadService = require('../services/cloud-upload');
 const { HttpCode, Subscription } = require('../config/constants');
+
+const EmailService = require('../services/email/service');
+const {
+  CreateSenderSendGrid,
+  CreateSenderNodemailer,
+} = require('../services/email/sender');
+
 require('dotenv').config();
 const { CustomError } = require('../helpers/customError');
 const SECRET_KEY = process.env.JWT_SECRET_KEY;
@@ -22,7 +29,18 @@ const registration = async (req, res, next) => {
   }
 
   try {
+    // TODO: Send email verify users
     const newUser = await Users.create({ email, password, subscription });
+    const emailService = new EmailService(
+      process.env.NODE_ENV,
+      new CreateSenderSendGrid(),
+    );
+
+    const statusEmail = await emailService.sendVerifyEmail(
+      newUser.email,
+      newUser.name,
+      newUser.verifyToken,
+    );
     return res.status(HttpCode.CREATED).json({
       status: 'success',
       code: HttpCode.CREATED,
@@ -31,6 +49,7 @@ const registration = async (req, res, next) => {
         email: newUser.email,
         subscription: newUser.subscription,
         avatar: newUser.avatar,
+        successEmail: statusEmail,
       },
     });
   } catch (e) {
@@ -42,7 +61,7 @@ const login = async (req, res, next) => {
   const { email, password } = req.body;
   const user = await Users.findByEmail(email);
   const isValidPassword = await user?.isValidPassword(password);
-  if (!user || !isValidPassword) {
+  if (!user || !isValidPassword || !user?.isVerified) {
     return res.status(HttpCode.UNAUTHORIZED).json({
       status: 'error',
       code: HttpCode.UNAUTHORIZED,
@@ -182,6 +201,80 @@ const uploadAvatar = async (req, res, next) => {
   });
 };
 
+const verifyUser = async (req, res, next) => {
+  const user = await Users.findUserByVerifyToken(req.params.token);
+  if (user) {
+    await Users.updateTokenVerify(user._id, true, null);
+    return res.status(HttpCode.OK).json({
+      status: 'success',
+      code: HttpCode.OK,
+      data: {
+        message: 'Verification successful',
+      },
+    });
+  }
+  return res.status(HttpCode.BAD_REQUEST).json({
+    status: 'error',
+    code: HttpCode.BAD_REQUEST,
+    message: 'User not found',
+  });
+};
+const repeatEmailForVerifyUser = async (req, res, next) => {
+  const { email } = req.body;
+  const user = await Users.findByEmail(email);
+  if (!user) {
+    return res.status(HttpCode.BAD_REQUEST).json({
+      status: 'error',
+      code: HttpCode.BAD_REQUEST,
+      message: 'missing required field email',
+    });
+  }
+
+  if (user?.verify) {
+    return new CustomError(
+      HttpCode.BAD_REQUEST,
+      'Verification has already been passed',
+    );
+  }
+
+  if (user && !user.verify) {
+    const { email, name, verifyToken } = user;
+    const emailService = new EmailService(
+      process.env.NODE_ENV,
+      new CreateSenderSendGrid(),
+    );
+    await emailService.sendVerifyEmail(email, name, verifyToken);
+
+    return res.status(HttpCode.OK).json({
+      status: 'success',
+      code: HttpCode.OK,
+      data: {
+        message: 'Verification email sent',
+      },
+    });
+  }
+  // if (user) {
+  //   const { email, name, verifyToken } = user;
+  //   const emailService = new EmailService(
+  //     process.env.NODE_ENV,
+  //     new CreateSenderSendGrid(),
+  //   );
+
+  //   const statusEmail = await emailService.sendVerifyEmail(
+  //     email,
+  //     name,
+  //     verifyToken,
+  //   );
+  // }
+  // return res.status(HttpCode.OK).json({
+  //   status: 'success',
+  //   code: HttpCode.OK,
+  //   data: {
+  //     message: 'Success',
+  //   },
+  // });
+};
+
 module.exports = {
   registration,
   login,
@@ -192,4 +285,6 @@ module.exports = {
   userPro,
   userBusiness,
   uploadAvatar,
+  verifyUser,
+  repeatEmailForVerifyUser,
 };

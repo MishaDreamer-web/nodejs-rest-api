@@ -15,12 +15,15 @@ const {
   userPro,
   userBusiness,
   uploadAvatar,
+  verifyUser,
+  repeatEmailForVerifyUser,
 } = require('../../controllers/usersControllers');
 const guard = require('../../helpers/guard');
 const { Subscription } = require('../../config/constants');
 const role = require('../../helpers/role');
 const loginLimit = require('../../helpers/rate-limit-login');
 const upload = require('../../helpers/uploads');
+const wrapError = require('../../helpers/errorHandler');
 
 router.patch('/', guard, validateSubscriptionUser, updateSubscription);
 
@@ -35,5 +38,8 @@ router.post('/logout', guard, logout);
 router.get('/current', guard, current);
 
 router.patch('/avatar', guard, upload.single('avatar'), uploadAvatar);
+
+router.get('/verify/:token', wrapError(verifyUser));
+router.post('/verify', repeatEmailForVerifyUser);
 
 module.exports = router;
